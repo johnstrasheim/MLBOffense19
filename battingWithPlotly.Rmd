@@ -1,0 +1,126 @@
+---
+title: "Introduction to Plotly with R"
+output: html_notebook
+---
+
+
+
+You will need to install plotly or ggthemes if you don't have it already.  
+```{r}
+library(tidyverse)
+library(plotly)
+library(ggthemes)
+```
+With the ggthemes package, you can also have access to nice, clean themes that just require one additonal line of code.  I'll be using the 538 theme.  Other themes can be found here:  
+
+https://yutannihilation.github.io/allYourFigureAreBelongToUs/ggthemes/
+
+
+First, import data from FanGraphs via GitHub.  https://github.com/johnstrasheim 
+
+Note: Players with less than 190 PA's will be filtered out.  Moreover, these are two datasets with advanced and standard stats, so let's merge them together.
+
+```{r}
+bat <- read_csv('batting19.csv')
+adv <- read_csv('batting19Adv.csv')
+batting <- left_join(bat, adv)
+```
+
+Let's create something like we've been doing in ggplot.  Notice the fivethirtyeight theme added with the ggthemes library.  Let's look at the relationship between a player's batting average and wRC+ (weighted runs created plus).  More info on wRC+ below:
+
+```{r}
+i<- ggplot() +
+  theme_fivethirtyeight() +
+  geom_point(data=batting, aes(x=`wRC+`, y=AVG)) +
+  geom_smooth(data=batting, aes(x=`wRC+`, y=AVG), method='lm', se=FALSE) +
+  labs(x='wRC+', y='Batting Average', title= "2019 MLB Season Batting", subtitle="190 PAs min to Qualify", caption="Source:  FanGraphs | by John Strasheim")
+i
+
+```
+
+You can obviously add more aesthetics to make it look better, but you get the picture.  If I'm a fan of sports though, obviously I wanna see maybe outlier points or just scroll through and see each player at an individual location.  We can always annotate data, but that process can be tedious and tedious.  Here is where plotly comes in.  Plotly will make your visualizatons interactive.  Additionally, you can zoom in on certain parts of the viz too.  For example, you can drag a box around guys with a .300 average, and see all the guys in that specific range.
+
+```{r}
+py <- plot_ly(data=batting, x= ~`wRC+`, y= ~`AVG`, color= ~`Division`,
+        hoverinfo = "text",
+        text = ~paste("Player:", Name,
+                      '<br>wRC+:', `wRC+`,
+                      '<br>AVG:', AVG,
+                      '<br>Team:', Tm,
+                      '<br>Division:', Division
+                      )) %>% 
+  layout(
+    title = "2019 MLB Season Batting",
+    xaxis = list(title = "wRC+"),
+    yaxis = list(title = "Batting Average")
+  )
+py
+```
+
+
+Let's break this down.  We're assigning this whole visual to variable py to start.  Then we're running the function plot_ly from the plotly library to start.  We then specify what data we are using.  Then we are going to specify what we want our x and y variables to be, and finally what we want the color of our variables to be.  So I want the same two offensive stats we used earlier in our ggplot, and have it colored by the division that they are in.  Then we want to specify what we want our users to see when they hover over a data point, hence hoverinfo = "text".  The next step will be to define what our text is.  
+```{r}
+#py <- 
+#   plot_ly(data=batting, x= ~`wRC+`, y= ~`AVG`, color= ~`Division`,
+# hoverinfo = "text"
+
+```
+
+
+Here we are specifying that we want to have our text paste the following results:  What is in quotes is what the USERS are going to see directly, what's after the quotes is what data is going to appear.  So "Player:", Name translates to something like Player: Christian Yelich when the User hovers above Yelich's data point.  
+
+Next we have a scary bit of HTML, <br>.  All this means is we're having a line break so all of our data is not on one line.  Simple.  Do this process for whatever variables you want to have your users see.  So for mine, I wanted my users to see the Player's name, wRC+, Batting Avg, and what division they are in.  Finally let's end it with a pipe ( %>% ) because next we're going to do the layout of the viz
+```{r}
+#text = ~paste("Player:", Name,
+                      # '<br>wRC+:', `wRC+`,
+                      # '<br>AVG:', AVG,
+                      # '<br>Team:', Tm,
+                      # '<br>Division:', Division
+                      # )) %>% 
+```
+
+This is all similar to ggplot here and should make a lot of sense.  We're just telling plotly what we want the layout to be of our viz, starting with the title, and then doing the x and y axis names after that.  Finally we'll call py, the variable we stored our viz in, so that we can see what we actually made.  
+```{r}
+#  layout(
+#     title = "2019 MLB Season Batting",
+#     xaxis = list(title = "wRC+"),
+#     yaxis = list(title = "Batting Average")
+#   )
+# py
+```
+
+
+
+We want to now export our plotly visualization.  First, you'll need to sign up for a free plotly account.  Then you'll need to register your plotly username and your API key.  More info about how to do that can be found here:
+
+https://plot.ly/r/getting-started/#initialization-for-online-plotting
+
+
+```{r}
+#Sys.setenv("plotly_username"="Enter your plotly username here")
+#Sys.setenv("plotly_api_key"="Enter your API key here")
+```
+
+Now run this line of code specifiying what variable you are exporting, and what you want the file to be named on plotly's servers.  From plotly's website you can then do several different things like editing it on there, embedding it on websites, or create a shareable link.  
+```{r}
+#api_create(py, filename="MLBOffense19")
+```
+
+
+
+# Assignment:
+
+Download the pitcher data (pitcher_19.csv) via GitHub https://github.com/johnstrasheim
+Note:  The data is filtered for qualifying pitcher only...  < 50 IP are filtered out.  
+
+1.  I want you to first create a simple ggplot like we did above visualizing xFIP as your x variable and ERA as your y variable.  xFIP information can be found here https://library.fangraphs.com/pitching/xfip/
+
+2.  Along with your ggplot, I want you to add a theme from ggthemes different from the fivethirtyeight theme used in the example.  
+
+3.  Next, create a plotly visualization using the same two variables.  I want the color to be just the team's Conference (NL or AL).  Guys who are on multiple teams I want their conference to be titled "Multiple Teams" You'll need to use gsub and mutate.  You can either alter the existing column and change the column heading, or use mutate to create an entirely separate Conference column.
+
+4.  I want the data callout to include the pitcher's name, xFIP, ERA, Team, and Conference.
+
+5.  Export your plotly visualization to plotly's website.  Include a link of your viz in your notebook.
+
+
